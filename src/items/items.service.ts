@@ -1,42 +1,52 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { Item } from './items.model';
 import { CreateItemDto } from './dto/create-item.dto';
-import { v4 as uuid } from 'uuid';
+import { PrismaService } from 'src/prisma/prisma.service';
+import { Item, ItemStatus } from '@prisma/client';
 
 @Injectable()
 export class ItemsService {
-    private items: Item[] = [];
+    constructor(private readonly prismaService: PrismaService) {}
 
-    findAll() {
-        return this.items;
+    async findAll(): Promise<Item[]> {
+        return await this.prismaService.item.findMany();
     }
 
-    findById(id: string) {
-        const found = this.items.find((item) => item.id === id);
+    async findById(id: string): Promise<Item> {
+        const found = await this.prismaService.item.findUnique({ where: { id } });
         if (!found) {
-            throw new NotFoundException(`Item with ID "${id}" not found`);
+            throw new NotFoundException(`アイテムが見つかりません。ID: ${id}`);
         }
         return found;
     }
 
-    create(createItemDto: CreateItemDto) {
-        const item: Item = {
-            id: uuid(),
-            ...createItemDto,
-            status: 'ON_SALE',
-        };
-        this.items.push(item);
-        return item;
+    async create(createItemDto: CreateItemDto): Promise<Item> {
+        const { name, price, description } = createItemDto;
+        return await this.prismaService.item.create({
+            data: {
+                name,
+                price,
+                description,
+                status: ItemStatus.ON_SALE,
+            },
+        });
     }
 
-    update(id: string, item: Item) {
-        const itemIndex = this.items.findIndex((item) => item.id === id);
-        this.items[itemIndex] = item;
-        return item;
+    async update(id: string, item: Item): Promise<Item> {
+        const found = await this.prismaService.item.findUnique({ where: { id } });
+        if (!found) {
+            throw new NotFoundException(`アイテムが見つかりません。ID: ${id}`);
+        }
+        return await this.prismaService.item.update({
+            where: { id },
+            data: item,
+        });
     }
 
-    delete(id: string) {
-        const itemIndex = this.items.findIndex((item) => item.id === id);
-        this.items.splice(itemIndex, 1);
+    async delete(id: string): Promise<Item> {
+        const found = await this.prismaService.item.findUnique({ where: { id } });
+        if (!found) {
+            throw new NotFoundException(`アイテムが見つかりません。ID: ${id}`);
+        }
+        return await this.prismaService.item.delete({ where: { id } });
     }
 }
