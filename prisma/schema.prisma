@@ -15,9 +15,27 @@ model Item {
   status      ItemStatus
   createdAt   DateTime   @default(now()) @db.Timestamp(0)
   updatedAt   DateTime   @updatedAt @db.Timestamp(0)
+  userId      String     @db.Uuid // １対１の関係に設定
+  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 enum ItemStatus {
   ON_SALE
   SOLD_OUT
+}
+
+model User {
+  id        String     @id @default(uuid()) @db.Uuid
+  name      String     @unique @db.VarChar(255)
+  email     String     @unique @db.VarChar(255)
+  password  String     @db.VarChar(255)
+  status    UserStatus
+  createdAt DateTime   @default(now()) @db.Timestamp(0)
+  updatedAt DateTime   @updatedAt @db.Timestamp(0)
+  Item      Item[]
+}
+
+enum UserStatus {
+  FREE
+  PREMIUM
 }
