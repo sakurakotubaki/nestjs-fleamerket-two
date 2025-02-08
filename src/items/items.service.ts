@@ -19,7 +19,7 @@ export class ItemsService {
         return found;
     }
 
-    async create(createItemDto: CreateItemDto): Promise<Item> {
+    async create(createItemDto: CreateItemDto, userId: string): Promise<Item> {
         const { name, price, description } = createItemDto;
         return await this.prismaService.item.create({
             data: {
@@ -27,15 +27,18 @@ export class ItemsService {
                 price,
                 description,
                 status: ItemStatus.ON_SALE,
-                userId: '',
+                userId: userId,
             },
         });
     }
 
-    async update(id: string, item: Item): Promise<Item> {
+    async update(id: string, item: Item, userId: string): Promise<Item> {
         const found = await this.prismaService.item.findUnique({ where: { id } });
         if (!found) {
             throw new NotFoundException(`アイテムが見つかりません。ID: ${id}`);
+        }
+        if (found.userId !== userId) {
+            throw new NotFoundException('このアイテムは更新できません');
         }
         return await this.prismaService.item.update({
             where: { id },
@@ -43,10 +46,13 @@ export class ItemsService {
         });
     }
 
-    async delete(id: string): Promise<Item> {
+    async delete(id: string, userId: string): Promise<Item> {
         const found = await this.prismaService.item.findUnique({ where: { id } });
         if (!found) {
             throw new NotFoundException(`アイテムが見つかりません。ID: ${id}`);
+        }
+        if (found.userId !== userId) {
+            throw new NotFoundException('このアイテムは削除できません');
         }
         return await this.prismaService.item.delete({ where: { id } });
     }
